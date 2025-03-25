@@ -23,15 +23,15 @@ jobs:
         distribution: 'temurin'
         cache: 'maven'
 
-    - name: Cache Maven dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.m2/repository
-          target/
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-
+#    - name: Cache Maven dependencies
+#      uses: actions/cache@v3
+#      with:
+#        path: |
+#          ~/.m2/repository
+#          target/
+#        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#        restore-keys: |
+#          ${{ runner.os }}-maven-
 
 #    - name: Clean and Build with Maven
 #      run: mvn clean install -B 
