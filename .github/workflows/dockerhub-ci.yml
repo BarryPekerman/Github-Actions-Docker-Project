@@ -18,45 +18,24 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up JDK 17
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: 'maven'
 
-    - name: Build App
+    - name: Build App with Maven
       run: mvn -B package --file pom.xml
 
     - name: Create multi-stage Dockerfile
       run: |
         cat > Dockerfile << 'EOF'
-        FROM maven:3.9-amazoncorretto-17 AS build
-        WORKDIR /app
-        COPY pom.xml .
-        RUN mvn dependency:go-offline
-        COPY src ./src
-        RUN mvn clean package -DskipTests
-        RUN mkdir -p extracted && \
-         if jar -tf target/*.jar | grep -q "BOOT-INF/layers.idx"; then \
-         echo "Spring Boot layered JAR detected, extracting layers..."; \
-         java -Djarmode=layertools -jar target/*.jar extract --destination extracted; \
-         else \
-         echo "Regular JAR detected, using simple copy..."; \
-         mkdir -p extracted/application; \
-         cp target/*.jar extracted/application/; \
-         fi
-        
-        FROM eclipse-temurin:17-jre-alpine
-        WORKDIR /app
-        LABEL org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY
-        LABEL org.opencontainers.image.description="Optimized Java application container"
-        RUN addgroup --system javauser && adduser --system --ingroup javauser javauser
-        COPY --from=build --chown=javauser:javauser /app/extracted/ ./
-        RUN chmod -R u=rX,g=rX /app
-        USER javauser
-        ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
-        EXPOSE 8080
-        ENTRYPOINT ["sh", "-c", "if [ -f 'org/springframework/boot/loader/JarLauncher.class' ]; then java $JAVA_OPTS org.springframework.boot.loader.JarLauncher; elif [ -d 'application' ]; then java $JAVA_OPTS -jar application/*.jar; else java $JAVA_OPTS -jar *.jar; fi"]
+        FROM maven as build
+        COPY . .
+        RUN mvn clean package
+        FROM openjdk:17-jre-slim as deploy
+        COPY --from=build target/*.jar app.jar
+        CMD java -jar app.jar
         EOF
 
     - name: Login to GitHub Container Registry
