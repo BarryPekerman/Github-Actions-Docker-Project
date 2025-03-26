@@ -33,7 +33,7 @@ jobs:
         FROM maven as build
         COPY . .
         RUN mvn clean package
-        FROM openjdk:17-jre-slim as deploy
+        FROM openjdk:17-jdk-slim as deploy
         COPY --from=build target/*.jar app.jar
         CMD java -jar app.jar
         EOF
